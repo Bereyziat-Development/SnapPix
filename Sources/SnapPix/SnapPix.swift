@@ -7,6 +7,7 @@
 
 import SwiftUI
 @available(iOS 15.0, *)
+/// A SwiftUI view that allows users to select images from their device or camera.
 
 public struct SnapPix: View {
     @State private var isShowingImageSourceTypeActionSheet = false
@@ -32,6 +33,22 @@ public struct SnapPix: View {
     var gridMinumum: CGFloat = 100
     var spacing: CGFloat = 16
     
+    
+    /// Initializes a SnapPix view.
+    /// - Parameters:
+    ///   - uIImages: A binding to an array of UIImages.
+    ///   - imageCount: The maximum number of images allowed (default is 5).
+    ///   - cameraImage: The image to be displayed as a placeholder for the camera option (default is a camera icon).
+    ///   - gradientColor1: The first color of the gradient used for the camera image placeholder (default is black).
+    ///   - gradientColor2: The second color of the gradient used for the camera image placeholder (default is black).
+    ///   - imageCornerRadius: The corner radius of the images (default is 25).
+    ///   - frameHeight: The height of the image frame (default is 110).
+    ///   - frameWidth: The width of the image frame (default is 110).
+    ///   - colorFill: The background color of the image frames (default is white).
+    ///   - imageHeight: The height of the camera image (default is 46).
+    ///   - gridMinumum: The minimum width for the grid columns (default is 100).
+    ///   - spacing: The spacing between images in the grid (default is 16)
+    ///
     public init(uIImages: Binding<[UIImage]>,
                 imageCount: Int = 5,
                 cameraImage: Image = Image(systemName: "camera"),
@@ -57,7 +74,7 @@ public struct SnapPix: View {
         self.gridMinumum = gridMinumum
         self.spacing = spacing
     }
-
+    
     
     public  var body: some View {
         VStack {
@@ -145,11 +162,11 @@ public struct SnapPix: View {
     }
 }
 
-    
+
 
 
 @available(iOS 15.0, *)
 #Preview {
     SnapPix(uIImages: .constant([UIImage(systemName: "pencil")!]))
-   
+    
 }
