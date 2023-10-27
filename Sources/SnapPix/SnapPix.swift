@@ -10,12 +10,13 @@ import SwiftUI
 /// A SwiftUI view that allows users to select images from their device or camera.
 
 public struct SnapPix: View {
- 
+    
     @State private var isShowingImageSourceTypeActionSheet = false
     @State private var isShowingImagePicker = false
     @State private var sourceType: UIImagePickerController.SourceType?
     @State private var selectedPicture: UIImage?
     var canAddImage: Bool { uIImages.count < imageCount }
+    
     
     
     //Design of library
@@ -33,8 +34,12 @@ public struct SnapPix: View {
     var xMarkColor: Color = .white
     var xMarkOffset = CGSize(width: 50.0, height: -70.0)
     var xMarkFrame: CGSize = CGSize(width: 30, height: 30)
-    
+    var shadowColor: Color = .black
+    var shadowRadius: CGFloat = 0
+    var shadowPosition = CGPoint(x: 0, y: 0)
    
+    
+    
     
     //Columns design
     var gridMinumum: CGFloat = 100
@@ -71,7 +76,10 @@ public struct SnapPix: View {
                 isShowingXMark: Binding<Bool> = Binding.constant(false),
                 xMarkColor: Color = .white,
                 xMarkOffset: CGSize = CGSize(width: 50.0, height: -70.0),
-                xMarkFrame: CGSize = CGSize(width: 30, height: 30)
+                xMarkFrame: CGSize = CGSize(width: 30, height: 30),
+                shadowColor: Color = .black,
+                shadowRadius: CGFloat = 0,
+                shadowPosition: CGPoint = CGPoint(x: 0, y: 0)
     ) {
         self._uIImages = uIImages
         self.imageCount = imageCount
@@ -89,6 +97,9 @@ public struct SnapPix: View {
         self.xMarkColor = xMarkColor
         self.xMarkOffset = xMarkOffset
         self.xMarkFrame = xMarkFrame
+        self.shadowColor = shadowColor
+        self.shadowRadius = shadowRadius
+        self.shadowPosition = shadowPosition
     }
     
     
@@ -103,17 +114,17 @@ public struct SnapPix: View {
                         .clipShape(RoundedRectangle(cornerRadius: imageCornerRadius))
                         .overlay(
                             VStack {
-                if isShowingXmark {
-                        Button{
-                            uIImages.remove(at: index)
-                        }label: {
-                            Image(systemName: "xmark")
-                                .foregroundColor(xMarkColor)
-                                .padding(8)
-                                .background(Circle().fill(Color.black.opacity(0.3)))
-                                .frame(width: xMarkFrame.width, height: xMarkFrame.height)
-                        }}
-                   
+                                if isShowingXmark {
+                                    Button{
+                                        uIImages.remove(at: index)
+                                    }label: {
+                                        Image(systemName: "xmark")
+                                            .foregroundColor(xMarkColor)
+                                            .padding(8)
+                                            .background(Circle().fill(Color.black.opacity(0.3)))
+                                            .frame(width: xMarkFrame.width, height: xMarkFrame.height)
+                                    }}
+                                
                             } .offset(x: xMarkOffset.width, y: xMarkOffset.height)
                         )
                         .onLongPressGesture {
@@ -124,7 +135,7 @@ public struct SnapPix: View {
                     Button {
                         self.isShowingImageSourceTypeActionSheet = true
                     } label: {
-                        CameraPlaceholder(image: cameraImage, gradientColor1: gradientColor1, gradientColor2: gradientColor2, radius: imageCornerRadius, frameHeight: frameHeight, frameWidth: frameWidth, fill: colorFill, imageHeight: imageHeight)
+                        CameraPlaceholder(image: cameraImage, gradientColor1: gradientColor1, gradientColor2: gradientColor2, radius: imageCornerRadius, frameHeight: frameHeight, frameWidth: frameWidth, fill: colorFill, imageHeight: imageHeight, shadowColor: shadowColor, shadowRadius: shadowRadius, shadowPosition: shadowPosition)
                         
                     }
                 }
@@ -174,14 +185,16 @@ public struct SnapPix: View {
     }
     
     @ViewBuilder
-    public  func CameraPlaceholder(image: Image, gradientColor1: Color, gradientColor2: Color, radius: CGFloat, frameHeight: CGFloat, frameWidth: CGFloat, fill: Color, imageHeight: CGFloat) -> some View {
+    public  func CameraPlaceholder(image: Image, gradientColor1: Color, gradientColor2: Color, radius: CGFloat, frameHeight: CGFloat, frameWidth: CGFloat, fill: Color, imageHeight: CGFloat, shadowColor: Color = .black.opacity(0.0), shadowRadius: CGFloat = 0, shadowPosition: CGPoint = CGPoint(x: 0, y: 0)) -> some View {
         RoundedRectangle(cornerRadius: radius)
             .fill(fill)
             .frame(width: frameWidth, height: frameHeight)
+            .shadow(color: shadowColor, radius: shadowRadius, x: shadowPosition.x, y: shadowPosition.y)
             .overlay(
                 image
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+               
                     .frame(height: imageHeight)
                     .foregroundStyle(
                         .linearGradient(
@@ -193,11 +206,14 @@ public struct SnapPix: View {
                         )
                     )
             )
+//            .modifier(if: isShadow) { view in
+//                view.shadow(color: shadowColor, radius: shadowRadius, x: shadowX, y: shadowY)
+//            }
     }
+
+ 
+    
 }
-
-
-
 
 @available(iOS 15.0, *)
 #Preview {
