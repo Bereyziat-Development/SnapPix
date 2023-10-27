@@ -10,6 +10,7 @@ import SwiftUI
 /// A SwiftUI view that allows users to select images from their device or camera.
 
 public struct SnapPix: View {
+ 
     @State private var isShowingImageSourceTypeActionSheet = false
     @State private var isShowingImagePicker = false
     @State private var sourceType: UIImagePickerController.SourceType?
@@ -19,6 +20,7 @@ public struct SnapPix: View {
     
     //Design of library
     @Binding var uIImages: [UIImage]
+    @Binding var isShowingXmark: Bool
     var imageCount: Int = 5
     var cameraImage: Image = Image(systemName: "camera")
     var gradientColor1: Color = .black
@@ -28,6 +30,11 @@ public struct SnapPix: View {
     var frameWidth: CGFloat = 110
     var colorFill: Color = .white
     var imageHeight: CGFloat = 46
+    var xMarkColor: Color = .white
+    var xMarkOffset = CGSize(width: 50.0, height: -70.0)
+    var xMarkFrame: CGSize = CGSize(width: 30, height: 30)
+    
+   
     
     //Columns design
     var gridMinumum: CGFloat = 100
@@ -60,7 +67,12 @@ public struct SnapPix: View {
                 colorFill: Color = .white,
                 imageHeight: CGFloat = 46,
                 gridMinumum: CGFloat = 100,
-                spacing: CGFloat = 16) {
+                spacing: CGFloat = 16,
+                isShowingXMark: Binding<Bool> = Binding.constant(false),
+                xMarkColor: Color = .white,
+                xMarkOffset: CGSize = CGSize(width: 50.0, height: -70.0),
+                xMarkFrame: CGSize = CGSize(width: 30, height: 30)
+    ) {
         self._uIImages = uIImages
         self.imageCount = imageCount
         self.cameraImage = cameraImage
@@ -73,6 +85,10 @@ public struct SnapPix: View {
         self.imageHeight = imageHeight
         self.gridMinumum = gridMinumum
         self.spacing = spacing
+        self._isShowingXmark = isShowingXMark
+        self.xMarkColor = xMarkColor
+        self.xMarkOffset = xMarkOffset
+        self.xMarkFrame = xMarkFrame
     }
     
     
@@ -85,6 +101,24 @@ public struct SnapPix: View {
                         .frame(width: frameWidth, height: frameHeight)
                         .background(colorFill)
                         .clipShape(RoundedRectangle(cornerRadius: imageCornerRadius))
+                        .overlay(
+                            VStack {
+                if isShowingXmark {
+                        Button{
+                            uIImages.remove(at: index)
+                        }label: {
+                            Image(systemName: "xmark")
+                                .foregroundColor(xMarkColor)
+                                .padding(8)
+                                .background(Circle().fill(Color.black.opacity(0.3)))
+                                .frame(width: xMarkFrame.width, height: xMarkFrame.height)
+                        }}
+                   
+                            } .offset(x: xMarkOffset.width, y: xMarkOffset.height)
+                        )
+                        .onLongPressGesture {
+                            isShowingXmark.toggle()
+                        }
                 }
                 if canAddImage {
                     Button {
@@ -168,5 +202,4 @@ public struct SnapPix: View {
 @available(iOS 15.0, *)
 #Preview {
     SnapPix(uIImages: .constant([UIImage(systemName: "pencil")!]))
-    
 }
