@@ -9,111 +9,93 @@ import SwiftUI
 @available(iOS 15.0, *)
 /// A SwiftUI view that allows users to select images from their device or camera.
 
-public struct SnapPix<Label: View>: View {
+public struct SnapPix<
+    ImagePreview: View,
+    AddImageLabel: View,
+    DeleteImageLabel: View
+>: View {
     @State private var isShowingImageSourceTypeActionSheet = false
     @State private var isShowingImagePicker = false
     @State private var sourceType: UIImagePickerController.SourceType?
-    @State private var selectedPicture: UIImage?
-    var canAddImage: Bool { uIImages.count < imageCount }
+    @State private var selectedImage: UIImage?
+    @ViewBuilder private var imagePreview: (Image) -> ImagePreview
+    @ViewBuilder private var addImageLabel: () -> AddImageLabel
+    @ViewBuilder private var deleteImageLabel: () -> DeleteImageLabel
+    private var addImageCallback: (() -> Void)?
+    private var deleteImageCallback: (() -> Void)?
     
-    private var imagePreview: ((Image) -> Label)?
-    private var xmarkDeletion: (() -> Label)?
-    private var canAddImageButton: (() -> Label)?
-    
-    //Design of library
-    @Binding var uIImages: [UIImage]
-    @Binding var allowDeletion: Bool
-    var imageCount: Int = 5
+    // Features related variables
+    @Binding private var uiImages: [UIImage]
+    private var allowDeletion: Bool = false
+    private var maxImageCount: Int = 5
    
-    //Columns design
-    var gridMinumum: CGFloat = 100
-    var spacing: CGFloat = 16
+    // Design related variables
+    private var gridMin: CGFloat = 100
+    private var spacing: CGFloat = 10
     
-    var hasImagePreview: Bool {
-        return imagePreview != nil
-    }
-    
-    var hasXmarkDeletion: Bool {
-        return xmarkDeletion != nil
-    }
-    
-    var hasAddImageButton: Bool {
-        return canAddImageButton != nil
-    }
+    private var canAddImage: Bool { uiImages.count < maxImageCount }
     
     /// Initializes a SnapPix view.
     /// - Parameters:
-    ///   - uIImages: A binding to an array of UIImages.
-    ///   - imageCount: The maximum number of images allowed (default is 5).
+    ///   - uiImages: A binding to an array of UIImages.
+    ///   - maxImageCount: The maximum number of images allowed (default is 5).
     ///   - gridMinumum: The minimum width for the grid columns (default is 100).
     ///   - spacing: The spacing between images in the grid (default is 16)
     ///
-    public init(uIImages: Binding<[UIImage]>,
-                imageCount: Int = 5,
-                gridMinumum: CGFloat = 100,
-                spacing: CGFloat = 16,
-                allowDeletion: Binding<Bool> = Binding.constant(false),
-                imagePreview: ((Image) -> Label)? = nil,
-                xmarkDeletion: (() -> Label)? = nil,
-                canAddImageButton: (() -> Label)? = nil
+    public init(
+        uiImages: Binding<[UIImage]>,
+        maxImageCount: Int = 5,
+        gridMin: CGFloat = 100,
+        spacing: CGFloat = 16,
+        allowDeletion: Bool = false,
+        addImageCallback: (() -> Void)? = nil,
+        deleteImageCallback: (() -> Void)? = nil,
+        @ViewBuilder imagePreview: @escaping (Image) -> ImagePreview = {
+            image in SPImagePreview(image: image)
+        },
+        @ViewBuilder addImageLabel: @escaping () -> AddImageLabel = { SPAddImageLabel() },
+        @ViewBuilder deleteImageLabel: @escaping () -> DeleteImageLabel = { SPDeleteImageLabel() }
     ) {
-        self._uIImages = uIImages
-        self.imageCount = imageCount
-        self.gridMinumum = gridMinumum
+        self._uiImages = uiImages
+        self.maxImageCount = maxImageCount
+        self.gridMin = gridMin
         self.spacing = spacing
-        self._allowDeletion = allowDeletion
+        self.allowDeletion = allowDeletion
         self.imagePreview = imagePreview
-        self.xmarkDeletion = xmarkDeletion
-        self.canAddImageButton = canAddImageButton
+        self.deleteImageLabel = deleteImageLabel
+        self.addImageLabel = addImageLabel
+        self.addImageCallback = addImageCallback
+        self.deleteImageCallback = deleteImageCallback
     }
     
-    public  var body: some View {
+    public var body: some View {
         VStack {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinumum))], spacing: spacing) {
-                ForEach(uIImages.indices, id: \.self) { index in
-                    if hasImagePreview {
-                        if let previewClosure = imagePreview {
-                            let previewImage = Image(uiImage: uIImages[index])
-                            previewClosure(previewImage)
-                                .overlay {
-                                    XmarkDeletion(index: index)
-                                }
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: gridMin))],
+                spacing: spacing
+            ) {
+                ForEach(Array(uiImages.enumerated()), id: \.offset) { index, uiImage in
+                    imagePreview(Image(uiImage: uiImage))
+                        .overlay {
+                            DeleteImageButton(index)
                         }
-                    } else {
-                        Image(uiImage: uIImages[index])
-                            .resizable()
-                            .frame(width: 110, height: 100)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .overlay {
-                                XmarkDeletion(index: index)
-                            }
-                    }
-                }
-                .onLongPressGesture {
-                    allowDeletion.toggle()
                 }
                 if canAddImage {
                     Button {
-                        self.isShowingImageSourceTypeActionSheet = true
+                        isShowingImageSourceTypeActionSheet = true
                     } label: {
-                        if hasAddImageButton {
-                            canAddImageButton!()
-                        } else {
-                            CameraPlaceholder()
-                        }
+                        addImageLabel()
                     }
                 }
             }
         }
-        .sheet(isPresented: $isShowingImagePicker, onDismiss: {
-            if let selectedPicture {
-                uIImages.append(selectedPicture)
-            }
-            self.selectedPicture = nil
-        }) {
+        .sheet(
+            isPresented: $isShowingImagePicker,
+            onDismiss: addImageIfSelected
+        ) {
             ImagePicker(
                 sourceType: sourceType!,
-                uiImage: $selectedPicture,
+                uiImage: $selectedImage,
                 isPresented: $isShowingImagePicker
             )
         }
@@ -135,37 +117,31 @@ public struct SnapPix<Label: View>: View {
                             isShowingImagePicker = true
                             sourceType = .camera
                         }
-                    ), ActionSheet.Button.cancel()
+                    ),
+                    ActionSheet.Button.cancel()
                 ]
             )
         }
     }
     
-    private func onDismissImagePicker() {
-        if let selectedPicture {
-            uIImages.append(selectedPicture)
-        }
-        selectedPicture = nil
+    private func addImageIfSelected() {
+        guard let selectedImage else { return }
+        uiImages.append(selectedImage)
+        self.selectedImage = nil
+        addImageCallback?()
     }
     
     @ViewBuilder
-    private func XmarkDeletion(index: Int) -> some View {
+    private func DeleteImageButton(_ index: Int) -> some View {
         VStack {
             HStack {
                 Spacer()
                 if allowDeletion {
                     Button {
-                        uIImages.remove(at: index)
+                        uiImages.remove(at: index)
+                        deleteImageCallback?()
                     } label: {
-                        if hasXmarkDeletion {
-                            xmarkDeletion!()
-                        } else {
-                            Image(systemName: "xmark")
-                                .foregroundColor(.white)
-                                .padding(8)
-                                .background(Circle().fill(Color.black.opacity(0.3)))
-                                .frame(width: 20, height: 20)
-                        }
+                        deleteImageLabel()
                     }
                 }
             }
@@ -173,37 +149,65 @@ public struct SnapPix<Label: View>: View {
         }
         .offset(x: 3, y: -6)
     }
+}
+
+public struct SPImagePreview: View {
+    var image: Image
     
-    @ViewBuilder
-    public func CameraPlaceholder() -> some View {
+    public init(image: Image) {
+        self.image = image
+    }
+    
+    public var body: some View {
+        image
+            .resizable()
+            .frame(width: 100, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+public struct SPAddImageLabel: View {
+    public init() {}
+    
+    public var body: some View {
         RoundedRectangle(cornerRadius: 20)
             .fill(.white)
-            .frame(width: 110, height: 100)
+            .frame(width: 100, height: 100)
             .shadow(color: .gray.opacity(0.4), radius: 8, x: 4, y: 4)
             .overlay(
                 Image(systemName: "camera")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-               
-                    .frame(height: 46)
+                    .frame(width: 50, height: 50)
                     .foregroundStyle(Color.black.opacity(0.6))
             )
     }
 }
 
-
-#if DEBUG
-#Preview {
-    SnapPix(uIImages: .constant([UIImage(systemName: "trash")!]), imageCount: 1, gridMinumum: 10, spacing: 10, allowDeletion: .constant(true)) { image in
-        Image(systemName: "plus")
-    } xmarkDeletion: {
+public struct SPDeleteImageLabel: View {
+    public init() {}
+    
+    public var body: some View {
         Image(systemName: "xmark")
-    } canAddImageButton: {
-        Image(systemName: "book")
+            .foregroundColor(.white)
+            .padding(8)
+            .background(Circle().fill(Color.black.opacity(0.3)))
+            .frame(width: 20, height: 20)
     }
 }
 
-#Preview {
-    SnapPix<EmptyView>(uIImages: .constant([UIImage(systemName: "camera")!]), imageCount: 4, gridMinumum: 100, spacing: 10, allowDeletion: .constant(true))
+struct ExampleView: View {
+    @State private var uiImages = [UIImage]()
+    
+    public var body: some View {
+        SnapPix(
+            uiImages: $uiImages,
+            allowDeletion: true,
+            addImageCallback: { print("Nice! Image sent 🚀")}
+        )
+    }
 }
-#endif
+
+#Preview("Default implementation") {
+    ExampleView()
+}
