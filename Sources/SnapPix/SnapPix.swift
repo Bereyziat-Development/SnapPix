@@ -9,147 +9,93 @@ import SwiftUI
 @available(iOS 15.0, *)
 /// A SwiftUI view that allows users to select images from their device or camera.
 
-public struct SnapPix: View {
-    
+public struct SnapPix<
+    ImagePreview: View,
+    AddImageLabel: View,
+    DeleteImageLabel: View
+>: View {
     @State private var isShowingImageSourceTypeActionSheet = false
     @State private var isShowingImagePicker = false
     @State private var sourceType: UIImagePickerController.SourceType?
-    @State private var selectedPicture: UIImage?
-    var canAddImage: Bool { uIImages.count < imageCount }
+    @State private var selectedImage: UIImage?
+    @ViewBuilder private var imagePreview: (Image) -> ImagePreview
+    @ViewBuilder private var addImageLabel: () -> AddImageLabel
+    @ViewBuilder private var deleteImageLabel: () -> DeleteImageLabel
+    private var addImageCallback: (() -> Void)?
+    private var deleteImageCallback: (() -> Void)?
     
-    
-    
-    //Design of library
-    @Binding var uIImages: [UIImage]
-    @Binding var isShowingXmark: Bool
-    var imageCount: Int = 5
-    var cameraImage: Image = Image(systemName: "camera")
-    var gradientColor1: Color = .black
-    var gradientColor2: Color = .black
-    var imageCornerRadius: CGFloat = 25
-    var frameHeight: CGFloat = 110
-    var frameWidth: CGFloat = 110
-    var colorFill: Color = .white
-    var imageHeight: CGFloat = 46
-    var xMarkColor: Color = .white
-    var xMarkOffset = CGSize(width: 50.0, height: -70.0)
-    var xMarkFrame: CGSize = CGSize(width: 30, height: 30)
-    var shadowColor: Color = .black
-    var shadowRadius: CGFloat = 0
-    var shadowPosition = CGPoint(x: 0, y: 0)
+    // Features related variables
+    @Binding private var uiImages: [UIImage]
+    private var allowDeletion: Bool = false
+    private var maxImageCount: Int = 5
    
+    // Design related variables
+    private var gridMin: CGFloat = 100
+    private var spacing: CGFloat = 10
     
-    
-    
-    //Columns design
-    var gridMinumum: CGFloat = 100
-    var spacing: CGFloat = 16
-    
+    private var canAddImage: Bool { uiImages.count < maxImageCount }
     
     /// Initializes a SnapPix view.
     /// - Parameters:
-    ///   - uIImages: A binding to an array of UIImages.
-    ///   - imageCount: The maximum number of images allowed (default is 5).
-    ///   - cameraImage: The image to be displayed as a placeholder for the camera option (default is a camera icon).
-    ///   - gradientColor1: The first color of the gradient used for the camera image placeholder (default is black).
-    ///   - gradientColor2: The second color of the gradient used for the camera image placeholder (default is black).
-    ///   - imageCornerRadius: The corner radius of the images (default is 25).
-    ///   - frameHeight: The height of the image frame (default is 110).
-    ///   - frameWidth: The width of the image frame (default is 110).
-    ///   - colorFill: The background color of the image frames (default is white).
-    ///   - imageHeight: The height of the camera image (default is 46).
+    ///   - uiImages: A binding to an array of UIImages.
+    ///   - maxImageCount: The maximum number of images allowed (default is 5).
     ///   - gridMinumum: The minimum width for the grid columns (default is 100).
     ///   - spacing: The spacing between images in the grid (default is 16)
     ///
-    public init(uIImages: Binding<[UIImage]>,
-                imageCount: Int = 5,
-                cameraImage: Image = Image(systemName: "camera"),
-                gradientColor1: Color = .black,
-                gradientColor2: Color = .black,
-                imageCornerRadius: CGFloat = 25,
-                frameHeight: CGFloat = 110,
-                frameWidth: CGFloat = 110,
-                colorFill: Color = .white,
-                imageHeight: CGFloat = 46,
-                gridMinumum: CGFloat = 100,
-                spacing: CGFloat = 16,
-                isShowingXMark: Binding<Bool> = Binding.constant(false),
-                xMarkColor: Color = .white,
-                xMarkOffset: CGSize = CGSize(width: 50.0, height: -70.0),
-                xMarkFrame: CGSize = CGSize(width: 30, height: 30),
-                shadowColor: Color = .black,
-                shadowRadius: CGFloat = 0,
-                shadowPosition: CGPoint = CGPoint(x: 0, y: 0)
+    public init(
+        uiImages: Binding<[UIImage]>,
+        maxImageCount: Int = 5,
+        gridMin: CGFloat = 100,
+        spacing: CGFloat = 16,
+        allowDeletion: Bool = false,
+        addImageCallback: (() -> Void)? = nil,
+        deleteImageCallback: (() -> Void)? = nil,
+        @ViewBuilder imagePreview: @escaping (Image) -> ImagePreview = {
+            image in SPImagePreview(image: image)
+        },
+        @ViewBuilder addImageLabel: @escaping () -> AddImageLabel = { SPAddImageLabel() },
+        @ViewBuilder deleteImageLabel: @escaping () -> DeleteImageLabel = { SPDeleteImageLabel() }
     ) {
-        self._uIImages = uIImages
-        self.imageCount = imageCount
-        self.cameraImage = cameraImage
-        self.gradientColor1 = gradientColor1
-        self.gradientColor2 = gradientColor2
-        self.imageCornerRadius = imageCornerRadius
-        self.frameHeight = frameHeight
-        self.frameWidth = frameWidth
-        self.colorFill = colorFill
-        self.imageHeight = imageHeight
-        self.gridMinumum = gridMinumum
+        self._uiImages = uiImages
+        self.maxImageCount = maxImageCount
+        self.gridMin = gridMin
         self.spacing = spacing
-        self._isShowingXmark = isShowingXMark
-        self.xMarkColor = xMarkColor
-        self.xMarkOffset = xMarkOffset
-        self.xMarkFrame = xMarkFrame
-        self.shadowColor = shadowColor
-        self.shadowRadius = shadowRadius
-        self.shadowPosition = shadowPosition
+        self.allowDeletion = allowDeletion
+        self.imagePreview = imagePreview
+        self.deleteImageLabel = deleteImageLabel
+        self.addImageLabel = addImageLabel
+        self.addImageCallback = addImageCallback
+        self.deleteImageCallback = deleteImageCallback
     }
     
-    
-    public  var body: some View {
+    public var body: some View {
         VStack {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: gridMinumum))], spacing: spacing) {
-                ForEach(uIImages.indices, id: \.self) { index in
-                    Image(uiImage: uIImages[index])
-                        .resizable()
-                        .frame(width: frameWidth, height: frameHeight)
-                        .background(colorFill)
-                        .clipShape(RoundedRectangle(cornerRadius: imageCornerRadius))
-                        .overlay(
-                            VStack {
-                                if isShowingXmark {
-                                    Button{
-                                        uIImages.remove(at: index)
-                                    }label: {
-                                        Image(systemName: "xmark")
-                                            .foregroundColor(xMarkColor)
-                                            .padding(8)
-                                            .background(Circle().fill(Color.black.opacity(0.3)))
-                                            .frame(width: xMarkFrame.width, height: xMarkFrame.height)
-                                    }}
-                                
-                            } .offset(x: xMarkOffset.width, y: xMarkOffset.height)
-                        )
-                        .onLongPressGesture {
-                            isShowingXmark.toggle()
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: gridMin))],
+                spacing: spacing
+            ) {
+                ForEach(Array(uiImages.enumerated()), id: \.offset) { index, uiImage in
+                    imagePreview(Image(uiImage: uiImage))
+                        .overlay {
+                            DeleteImageButton(index)
                         }
                 }
                 if canAddImage {
                     Button {
-                        self.isShowingImageSourceTypeActionSheet = true
+                        isShowingImageSourceTypeActionSheet = true
                     } label: {
-                        CameraPlaceholder(image: cameraImage, gradientColor1: gradientColor1, gradientColor2: gradientColor2, radius: imageCornerRadius, frameHeight: frameHeight, frameWidth: frameWidth, fill: colorFill, imageHeight: imageHeight, shadowColor: shadowColor, shadowRadius: shadowRadius, shadowPosition: shadowPosition)
-                        
+                        addImageLabel()
                     }
                 }
             }
         }
-        .sheet(isPresented: $isShowingImagePicker, onDismiss: {
-            if let selectedPicture {
-                uIImages.append(selectedPicture)
-            }
-            self.selectedPicture = nil
-        }) {
+        .sheet(
+            isPresented: $isShowingImagePicker,
+            onDismiss: addImageIfSelected
+        ) {
             ImagePicker(
                 sourceType: sourceType!,
-                uiImage: $selectedPicture,
+                uiImage: $selectedImage,
                 isPresented: $isShowingImagePicker
             )
         }
@@ -171,51 +117,97 @@ public struct SnapPix: View {
                             isShowingImagePicker = true
                             sourceType = .camera
                         }
-                    ), ActionSheet.Button.cancel()
+                    ),
+                    ActionSheet.Button.cancel()
                 ]
             )
         }
     }
     
-    private func onDismissImagePicker() {
-        if let selectedPicture {
-            uIImages.append(selectedPicture)
-        }
-        selectedPicture = nil
+    private func addImageIfSelected() {
+        guard let selectedImage else { return }
+        uiImages.append(selectedImage)
+        self.selectedImage = nil
+        addImageCallback?()
     }
     
     @ViewBuilder
-    public  func CameraPlaceholder(image: Image, gradientColor1: Color, gradientColor2: Color, radius: CGFloat, frameHeight: CGFloat, frameWidth: CGFloat, fill: Color, imageHeight: CGFloat, shadowColor: Color = .black.opacity(0.0), shadowRadius: CGFloat = 0, shadowPosition: CGPoint = CGPoint(x: 0, y: 0)) -> some View {
-        RoundedRectangle(cornerRadius: radius)
-            .fill(fill)
-            .frame(width: frameWidth, height: frameHeight)
-            .shadow(color: shadowColor, radius: shadowRadius, x: shadowPosition.x, y: shadowPosition.y)
-            .overlay(
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-               
-                    .frame(height: imageHeight)
-                    .foregroundStyle(
-                        .linearGradient(
-                            Gradient(
-                                colors: [gradientColor1, gradientColor2]
-                            ),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-            )
-//            .modifier(if: isShadow) { view in
-//                view.shadow(color: shadowColor, radius: shadowRadius, x: shadowX, y: shadowY)
-//            }
+    private func DeleteImageButton(_ index: Int) -> some View {
+        VStack {
+            HStack {
+                Spacer()
+                if allowDeletion {
+                    Button {
+                        uiImages.remove(at: index)
+                        deleteImageCallback?()
+                    } label: {
+                        deleteImageLabel()
+                    }
+                }
+            }
+            Spacer()
+        }
+        .offset(x: 3, y: -6)
     }
-
- 
-    
 }
 
-@available(iOS 15.0, *)
-#Preview {
-    SnapPix(uIImages: .constant([UIImage(systemName: "pencil")!]))
+public struct SPImagePreview: View {
+    var image: Image
+    
+    public init(image: Image) {
+        self.image = image
+    }
+    
+    public var body: some View {
+        image
+            .resizable()
+            .frame(width: 100, height: 100)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+}
+
+public struct SPAddImageLabel: View {
+    public init() {}
+    
+    public var body: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(.white)
+            .frame(width: 100, height: 100)
+            .shadow(color: .gray.opacity(0.4), radius: 8, x: 4, y: 4)
+            .overlay(
+                Image(systemName: "camera")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 50, height: 50)
+                    .foregroundStyle(Color.black.opacity(0.6))
+            )
+    }
+}
+
+public struct SPDeleteImageLabel: View {
+    public init() {}
+    
+    public var body: some View {
+        Image(systemName: "xmark")
+            .foregroundColor(.white)
+            .padding(8)
+            .background(Circle().fill(Color.black.opacity(0.3)))
+            .frame(width: 20, height: 20)
+    }
+}
+
+struct ExampleView: View {
+    @State private var uiImages = [UIImage]()
+    
+    public var body: some View {
+        SnapPix(
+            uiImages: $uiImages,
+            allowDeletion: true,
+            addImageCallback: { print("Nice! Image sent 🚀")}
+        )
+    }
+}
+
+#Preview("Default implementation") {
+    ExampleView()
 }
