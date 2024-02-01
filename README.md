@@ -1,50 +1,70 @@
 # SnapPix
-SnapPix is a Swift package providing a versatile image picker component for SwiftUI applications. It enables users to select images from their device or take photos using the camera. SnapPix offers a range of customization options to seamlessly integrate into your project.
 
-## Requirements
-iOS 15 or later
-Swift 5.5 or later
+SnapPix is a SwiftUI component for iOS that simplifies image selection and display within your app. Users can easily choose images from their device or camera, and the selected images are presented in a customizable grid layout.
+
+## Features
+
+- **Image Selection:** Allow users to pick images from their photo library or take new ones with the camera.
+- **Grid Display:** Display selected images in a customizable grid layout.
+- **Add and Delete Images:** Enable users to add new images to the grid and delete existing ones.
+- **Customization:** Customize the appearance of image previews, add labels, and delete labels.
 
 ## Installation
-### Swift Package Manager
-You can easily integrate SnapPix using the Swift Package Manager. Follow these simple steps:
 
-Open your project in Xcode.
-Navigate to File > Swift Packages > Add Package Dependency.
-Enter the package repository URL: https://github.com/Bereyziat-Development/SnapPix
-Click Next and follow the remaining steps to add the package to your project.
+To integrate SnapPix into your project, simply add the `SnapPix.swift` file to your Xcode project.
+
 ## Usage
-1. Import the necessary modules:
+
+Here's a basic example of how to use SnapPix in your SwiftUI view:
 
 ```swift
-import SwiftUI
 import SnapPix
-```
-2. Create a binding to an array of UIImage for managing selected images:
-```swift
-@State private var selectedImages: [UIImage] = []
-```
-## Example
-For a quick start, you can use the provided ready-to-use example:
-   ```swift
-struct ContentView: View {
-    @Binding var uIImages: [UIImage]
+
+struct ExampleView: View {
+    @State private var uiImages = [UIImage]()
+
     var body: some View {
-        VStack {
-            SnapPix(uIImages: $uIImages)
-           
-     
-        }
+        SnapPix(
+            uiImages: $uiImages,
+            allowDeletion: true,
+            addImageCallback: { print("Image added!") }
+        )
+    }
+}
 ```
-Customize the appearance of SnapPix by adjusting properties like image count, gradient colors, corner radius, and more.
+## Initialization
+
+You can customize SnapPix by providing various parameters during initialization. Here's an example:
+
 ```swift
-      SnapPix(uIImages: <#T##Binding<[UIImage]>#>, imageCount: <#T##Int#>, cameraImage: <#T##Image#>, gradientColor1: <#T##Color#>, gradientColor2: <#T##Color#>, imageCornerRadius: <#T##CGFloat#>, frameHeight: <#T##CGFloat#>, frameWidth: <#T##CGFloat#>, colorFill: <#T##Color#>, imageHeight: <#T##CGFloat#>, gridMinumum: <#T##CGFloat#>, spacing: <#T##CGFloat#>)
-           
+SnapPix(
+    uiImages: $uiImages,
+    maxImageCount: 5,
+    gridMin: 100,
+    spacing: 16,
+    allowDeletion: true,
+    addImageCallback: { print("Image added!") },
+    deleteImageCallback: { print("Image deleted!") },
+    imagePreview: { image in
+        // Custom image preview view
+        SPImagePreview(image: image)
+    },
+    addImageLabel: {
+        // Custom add image label view
+        SPAddImageLabel()
+    },
+    deleteImageLabel: {
+        // Custom delete image label view
+        SPDeleteImageLabel()
+    }
+)
 ```
-![Simulator Screen Recording - iPhone 15 Pro - 2023-10-17 at 15 16 34](https://github.com/Bereyziat-Development/SnapPix/assets/101000022/a6eef1a4-3f4f-47cf-9b91-20d068058a19)
+
+
+https://github.com/Bereyziat-Development/SnapPix/assets/72884798/25884ac3-432a-40e5-bfef-024d1874c2ac
+
 
 
 ## License
-This library is available under the MIT license. See the [LICENSE](LICENSE) file for more information.
 
----
+SnapPix is released under the MIT License. See [LICENSE](LICENSE) for details.
