@@ -9,7 +9,7 @@ import SwiftUI
 import UIKit
 
 /// A SwiftUI representation of an image picker.
-@available(iOS 13.0, *)
+@available(iOS 15.0, *)
 struct ImagePicker: UIViewControllerRepresentable {
     /// The source type for the image picker.
     var sourceType: UIImagePickerController.SourceType = .photoLibrary
@@ -39,7 +39,7 @@ struct ImagePicker: UIViewControllerRepresentable {
 }
 
 /// A coordinator to manage the UIImagePickerController.
-@available(iOS 13.0, *)
+@available(iOS 15.0, *)
 class ImagePickerViewCoordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
     /// Binding to the selected UIImage.
     @Binding var uiImage: UIImage?
@@ -68,7 +68,7 @@ class ImagePickerViewCoordinator: NSObject, UINavigationControllerDelegate, UIIm
 }
 
 /// A preview for the ImagePicker.
-@available(iOS 13.0, *)
+@available(iOS 15.0, *)
 #Preview {
     ImagePicker(uiImage: .constant(UIImage(named: "Apple")), isPresented: .constant(true))
 }
