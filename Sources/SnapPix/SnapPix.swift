@@ -1,5 +1,5 @@
 //
-//  AddPhotos.swift
+//  SnapPix.swift
 //
 //
 //  Created by Szymon Wnuk on 17/10/2023.
@@ -39,7 +39,7 @@ public struct SnapPix<
     /// - Parameters:
     ///   - uiImages: A binding to an array of UIImages.
     ///   - maxImageCount: The maximum number of images allowed (default is 5).
-    ///   - gridMinumum: The minimum width for the grid columns (default is 100).
+    ///   - gridMin: The minimum width for the grid columns (default is 100).
     ///   - spacing: The spacing between images in the grid (default is 16)
     ///
     public init(
