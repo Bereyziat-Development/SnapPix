@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-@available(iOS 15.0, *)
+@available(iOS 13.0, *)
 /// A SwiftUI view that allows users to select images from their device or camera.
 
 public struct SnapPix<
@@ -161,6 +161,7 @@ public struct SPImagePreview: View {
     public var body: some View {
         image
             .resizable()
+            .aspectRatio(contentMode: .fill)
             .frame(width: 100, height: 100)
             .clipShape(RoundedRectangle(cornerRadius: 20))
     }
