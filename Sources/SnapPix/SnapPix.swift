@@ -99,6 +99,26 @@ public struct SnapPix<
                 isPresented: $isShowingImagePicker
             )
         }
+        #if os(visionOS)
+        .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) { () -> ActionSheet in
+            ActionSheet(
+                title: Text("Choose pictures"),
+                message: Text("Please choose pictures from your gallery"),
+                buttons: [
+                    ActionSheet.Button.default(
+                        Text("Photo library"),
+                        action: {
+                            isShowingImagePicker = true
+                            sourceType = .photoLibrary
+                        }
+                    ),
+                    ActionSheet.Button.cancel()
+                ]
+            )
+        } 
+#endif
+        
+        #if iOS
         .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) { () -> ActionSheet in
             ActionSheet(
                 title: Text("Choose pictures"),
@@ -121,7 +141,7 @@ public struct SnapPix<
                     ActionSheet.Button.cancel()
                 ]
             )
-        }
+        } #endif
     }
     
     private func addImageIfSelected() {

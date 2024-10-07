@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "SnapPix",
-    platforms: [.iOS(.v15)],
+    platforms: [.iOS(.v15), .visionOS(.v1)],
     products: [
         .library(
             name: "SnapPix",
