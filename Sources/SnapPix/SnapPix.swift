@@ -28,7 +28,8 @@ public struct SnapPix<
     @Binding private var uiImages: [UIImage]
     private var allowDeletion: Bool = false
     private var maxImageCount: Int = 5
-    
+    let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+
     // Design related variables
     private var gridMin: CGFloat = 100
     private var spacing: CGFloat = 10
@@ -81,15 +82,15 @@ public struct SnapPix<
                         }
                 }
                 if canAddImage {
-                    
                     Button {
-#if !iOS
+    #if !iOS
+                        // On visionOS, directly open the photo library without camera option
                         isShowingImagePicker = true
                         sourceType = .photoLibrary
-                        
-#elseif iOS
+    #elseif iOS
+                        // On iOS, show the action sheet to choose between Camera or Photo Library
                         isShowingImageSourceTypeActionSheet = true
-#endif
+    #endif
                     } label: {
                         addImageLabel()
                     }
@@ -100,32 +101,18 @@ public struct SnapPix<
             isPresented: $isShowingImagePicker,
             onDismiss: addImageIfSelected
         ) {
+            // Ensure that this only tries to present the picker for valid platforms (like iOS)
+//    #if !os(visionOS)
+//    #if iOS
             ImagePicker(
-                sourceType: sourceType!,
+                sourceType: sourceType ?? .photoLibrary, // Default to photoLibrary
                 uiImage: $selectedImage,
                 isPresented: $isShowingImagePicker
             )
+//    #endif
         }
-        //        #if os(visionOS)
-        //        .actionSheet(isPresented: $isShowingImagePicker) { () -> ActionSheet in
-        //            ActionSheet(
-        //                title: Text("Choose pictures"),
-        //                message: Text("Please choose pictures from your gallery")
-        ////                buttons: [
-        ////                    ActionSheet.Button.default(
-        ////                        Text("Photo library"),
-        ////                        action: {
-        ////                            isShowingImagePicker = true
-        ////                            sourceType = .photoLibrary
-        ////                        }
-        ////                    ),
-        ////                    ActionSheet.Button.cancel()
-        ////                ]
-        //            )
-        //        } 
-        //#endif
         
-#if iOS
+    #if iOS
         .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) { () -> ActionSheet in
             ActionSheet(
                 title: Text("Choose pictures"),
@@ -148,9 +135,10 @@ public struct SnapPix<
                     ActionSheet.Button.cancel()
                 ]
             )
-        } #endif
+        }
+    #endif
     }
-    
+
     private func addImageIfSelected() {
         guard let selectedImage else { return }
         uiImages.append(selectedImage)
@@ -238,4 +226,5 @@ struct ExampleView: View {
 
 #Preview("Default implementation") {
     ExampleView()
+        
 }
