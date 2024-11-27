@@ -137,13 +137,11 @@ public struct SnapPix<
                     }
                 }
             }
-                if isShowingFileSizeAlert {
-                    Text("The selected file is bigger than \(maxFileSizeB / 1024000)MB.")
+                    Text(isShowingFileSizeAlert ? "The selected file is bigger than \(maxFileSizeB / 1024000)MB." : "")
                                .font(.system(size: 16, weight: .regular))
                                .foregroundColor(.red)
                                .padding(.horizontal)
                                .animation(.easeInOut)
-                       }
             
         }
         .sheet(
