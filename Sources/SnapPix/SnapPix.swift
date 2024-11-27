@@ -39,6 +39,7 @@ public struct SnapPix<
     @Binding private var uiImages: [UIImage]
     @Binding private var files: [URL]
     var uploadMode: UploadMode = .both
+    private var maxFileSizeMB = 2
     private var allowDeletion: Bool = false
     private var maxImageCount: Int = 5
     
@@ -69,6 +70,7 @@ public struct SnapPix<
         files: Binding<[URL]>? = nil,
         uploadMode: UploadMode = .both,
         maxImageCount: Int = 5,
+        maxFileSizeMB: Int = 2,
         gridMin: CGFloat = 100,
         spacing: CGFloat = 16,
         allowDeletion: Bool = false,
@@ -87,6 +89,7 @@ public struct SnapPix<
         self._files = files ?? .constant([])
         self.uploadMode = uploadMode
         self.maxImageCount = maxImageCount
+        self.maxFileSizeMB = maxFileSizeMB
         self.gridMin = gridMin
         self.spacing = spacing
         self.allowDeletion = allowDeletion
@@ -152,7 +155,7 @@ public struct SnapPix<
                 }
             }
         ) {
-            DocumentPicker(fileURL: $selectedFileURL, isShowingFileSizeError: $isShowingFileSizeAlert)
+            DocumentPicker(fileURL: $selectedFileURL, isShowingFileSizeError: $isShowingFileSizeAlert, sizeLimit: maxFileSizeMB)
         }
         .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) {
             switch uploadMode {
@@ -206,11 +209,12 @@ public struct SnapPix<
         }
         .alert(isPresented: $isShowingFileSizeAlert) {
             Alert(
-                title: Text("Error"),
-                message: Text("The max file size is 2MB."),
+                title: Text("File Too Large"),
+                message: Text("The selected file exceeds the maximum size of \(maxFileSizeMB) MB."),
                 dismissButton: .default(Text("OK"))
             )
         }
+
     }
     
     private func addImageIfSelected() {

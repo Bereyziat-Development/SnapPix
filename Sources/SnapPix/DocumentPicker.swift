@@ -10,8 +10,8 @@ import SwiftUI
 struct DocumentPicker: UIViewControllerRepresentable {
     @Binding var fileURL: URL?
     @Binding var isShowingFileSizeError: Bool
-    var sizeLimit: Int = 2 * 1024 * 1024
-    
+    var sizeLimit: Int
+
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.data, .image, .pdf], asCopy: true)
         picker.delegate = context.coordinator
@@ -26,11 +26,9 @@ struct DocumentPicker: UIViewControllerRepresentable {
     
     class Coordinator: NSObject, UIDocumentPickerDelegate {
         let documentPicker: DocumentPicker
-        @Binding var isShowingFileSizeError: Bool
-        
+
         init(_ documentPicker: DocumentPicker) {
             self.documentPicker = documentPicker
-            _isShowingFileSizeError = documentPicker._isShowingFileSizeError
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
@@ -40,14 +38,13 @@ struct DocumentPicker: UIViewControllerRepresentable {
                 let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
                 if let fileSize = attributes[.size] as? Int, fileSize <= documentPicker.sizeLimit {
                     documentPicker.fileURL = fileURL
-                    isShowingFileSizeError = false
+                    documentPicker.isShowingFileSizeError = false
                 } else {
-                    print("file too large")
                     documentPicker.fileURL = nil
-                    isShowingFileSizeError = true
+                    documentPicker.isShowingFileSizeError = true
                 }
             } catch {
-                print("error while getting attrributes")
+                print("Error while getting file attributes: \(error)")
             }
         }
     }
