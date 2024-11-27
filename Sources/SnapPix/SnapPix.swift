@@ -39,7 +39,7 @@ public struct SnapPix<
     @Binding private var uiImages: [UIImage]
     @Binding private var files: [URL]
     var uploadMode: UploadMode = .both
-    private var maxFileSizeB = 2000 * 1024
+    var maxFileSizeB = 2000 * 1024
     private var allowDeletion: Bool = false
     private var maxImageCount: Int = 5
     
@@ -102,7 +102,7 @@ public struct SnapPix<
     }
     
     public var body: some View {
-        VStack {
+        VStack(alignment: .leading) {
             LazyVGrid(
                 columns: [GridItem(.adaptive(minimum: gridMin))],
                 spacing: spacing
@@ -131,11 +131,20 @@ public struct SnapPix<
                 if canAddItem {
                     Button {
                         isShowingImageSourceTypeActionSheet = true
+                        isShowingFileSizeAlert = false
                     } label: {
                         addItemLabel(uploadMode)
                     }
                 }
             }
+                if isShowingFileSizeAlert {
+                    Text("The selected file is bigger than \(maxFileSizeB / 1024000)MB.")
+                               .font(.system(size: 16, weight: .regular))
+                               .foregroundColor(.red)
+                               .padding(.horizontal)
+                               .animation(.easeInOut)
+                       }
+            
         }
         .sheet(
             isPresented: $isShowingImagePicker,
@@ -205,16 +214,10 @@ public struct SnapPix<
                         .cancel()
                     ]
                 )
+              
             }
+           
         }
-        .alert(isPresented: $isShowingFileSizeAlert) {
-            Alert(
-                title: Text("File Too Large"),
-                message: Text("The selected file exceeds the maximum size of \(maxFileSizeB / 1024000) MB."),
-                dismissButton: .default(Text("OK"))
-            )
-        }
-
     }
     
     private func addImageIfSelected() {
@@ -345,6 +348,7 @@ public struct SPDeleteItemLabel: View {
             .frame(width: 20, height: 20)
     }
 }
+
 
 struct ExampleView: View {
     @State private var uiImages = [UIImage]()
