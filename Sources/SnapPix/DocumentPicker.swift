@@ -32,14 +32,27 @@ struct DocumentPicker: UIViewControllerRepresentable {
         }
         
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let fileURL = urls.first else { return }
+            guard let fileURL = urls.first else {
+                print("No file selected")
+
+                return }
+            print("Selected file URL: \(fileURL.path)")
+
             
             do {
                 let attributes = try FileManager.default.attributesOfItem(atPath: fileURL.path)
+                print("File attributes: \(attributes)")
+
                 if let fileSize = attributes[.size] as? Int, fileSize <= documentPicker.sizeLimit {
+                    print(fileSize)
+                    print("File size is within limit")
+
+
                     documentPicker.fileURL = fileURL
                     documentPicker.isShowingFileSizeError = false
                 } else {
+                    print("File size exceeds limit")
+
                     documentPicker.fileURL = nil
                     documentPicker.isShowingFileSizeError = true
                 }
