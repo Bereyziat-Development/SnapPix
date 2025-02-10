@@ -28,7 +28,8 @@ public struct SnapPix<
     @Binding private var uiImages: [UIImage]
     private var allowDeletion: Bool = false
     private var maxImageCount: Int = 5
-   
+    let osVersion = ProcessInfo.processInfo.operatingSystemVersion
+    
     // Design related variables
     private var gridMin: CGFloat = 100
     private var spacing: CGFloat = 10
@@ -82,7 +83,15 @@ public struct SnapPix<
                 }
                 if canAddImage {
                     Button {
+#if os(visionOS)
+                        
+                        isShowingImagePicker = true
+                        sourceType = .photoLibrary
+#endif
+#if os(iOS)
+                        
                         isShowingImageSourceTypeActionSheet = true
+#endif
                     } label: {
                         addImageLabel()
                     }
@@ -93,12 +102,15 @@ public struct SnapPix<
             isPresented: $isShowingImagePicker,
             onDismiss: addImageIfSelected
         ) {
+            
             ImagePicker(
-                sourceType: sourceType!,
+                sourceType: sourceType ?? .photoLibrary,
                 uiImage: $selectedImage,
                 isPresented: $isShowingImagePicker
             )
         }
+        
+#if os(iOS)
         .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) { () -> ActionSheet in
             ActionSheet(
                 title: Text("Choose pictures"),
@@ -122,6 +134,7 @@ public struct SnapPix<
                 ]
             )
         }
+#endif
     }
     
     private func addImageIfSelected() {
@@ -211,4 +224,5 @@ struct ExampleView: View {
 
 #Preview("Default implementation") {
     ExampleView()
+    
 }
