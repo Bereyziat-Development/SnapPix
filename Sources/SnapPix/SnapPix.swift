@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
+
 @available(iOS 13.0, *)
 /// A SwiftUI view that allows users to select images from their device or camera.
 
@@ -16,18 +18,22 @@ public struct SnapPix<
 >: View {
     @State private var isShowingImageSourceTypeActionSheet = false
     @State private var isShowingImagePicker = false
+    @State private var isShowingDocumentPicker = false
     @State private var sourceType: UIImagePickerController.SourceType?
     @State private var selectedImage: UIImage?
+    @State private var selectedFileURL: URL?
     @ViewBuilder private var imagePreview: (Image) -> ImagePreview
     @ViewBuilder private var addImageLabel: () -> AddImageLabel
     @ViewBuilder private var deleteImageLabel: () -> DeleteImageLabel
     private var addImageCallback: (() -> Void)?
     private var deleteImageCallback: (() -> Void)?
+    private var fileSelectedCallback: ((URL) -> Void)?
     
     // Features related variables
     @Binding private var uiImages: [UIImage]
     private var allowDeletion: Bool = false
     private var maxImageCount: Int = 5
+    private var supportedFileExtensions: [String]
     let osVersion = ProcessInfo.processInfo.operatingSystemVersion
     
     // Design related variables
@@ -42,6 +48,14 @@ public struct SnapPix<
     ///   - maxImageCount: The maximum number of images allowed (default is 5).
     ///   - gridMin: The minimum width for the grid columns (default is 100).
     ///   - spacing: The spacing between images in the grid (default is 16)
+    ///   - allowDeletion: Whether to allow deletion of images (default is false).
+    ///   - supportedFileExtensions: Optional array of supported file extensions. If nil, uses default formats: jpg, jpeg, png, pdf, xls, xlsx, gdoc, gsheet, doc, docx, ppt, pptx, txt.
+    ///   - addImageCallback: Callback called when an image is added.
+    ///   - deleteImageCallback: Callback called when an image is deleted.
+    ///   - fileSelectedCallback: Callback called when a non-image file is selected. Receives the file URL.
+    ///   - imagePreview: View builder for image preview.
+    ///   - addImageLabel: View builder for add image label.
+    ///   - deleteImageLabel: View builder for delete image label.
     ///
     public init(
         uiImages: Binding<[UIImage]>,
@@ -49,8 +63,10 @@ public struct SnapPix<
         gridMin: CGFloat = 100,
         spacing: CGFloat = 16,
         allowDeletion: Bool = false,
+        supportedFileExtensions: [String]? = nil,
         addImageCallback: (() -> Void)? = nil,
         deleteImageCallback: (() -> Void)? = nil,
+        fileSelectedCallback: ((URL) -> Void)? = nil,
         @ViewBuilder imagePreview: @escaping (Image) -> ImagePreview = {
             image in SPImagePreview(image: image)
         },
@@ -62,11 +78,13 @@ public struct SnapPix<
         self.gridMin = gridMin
         self.spacing = spacing
         self.allowDeletion = allowDeletion
+        self.supportedFileExtensions = supportedFileExtensions ?? defaultSupportedFileExtensions
         self.imagePreview = imagePreview
         self.deleteImageLabel = deleteImageLabel
         self.addImageLabel = addImageLabel
         self.addImageCallback = addImageCallback
         self.deleteImageCallback = deleteImageCallback
+        self.fileSelectedCallback = fileSelectedCallback
     }
     
     public var body: some View {
@@ -84,12 +102,14 @@ public struct SnapPix<
                 if canAddImage {
                     Button {
 #if os(visionOS)
-                        
-                        isShowingImagePicker = true
-                        sourceType = .photoLibrary
+                        if #available(iOS 14.0, *) {
+                            isShowingDocumentPicker = true
+                        } else {
+                            isShowingImagePicker = true
+                            sourceType = .photoLibrary
+                        }
 #endif
 #if os(iOS)
-                        
                         isShowingImageSourceTypeActionSheet = true
 #endif
                     } label: {
@@ -102,19 +122,30 @@ public struct SnapPix<
             isPresented: $isShowingImagePicker,
             onDismiss: addImageIfSelected
         ) {
-            
             ImagePicker(
                 sourceType: sourceType ?? .photoLibrary,
                 uiImage: $selectedImage,
                 isPresented: $isShowingImagePicker
             )
         }
+        .sheet(
+            isPresented: $isShowingDocumentPicker,
+            onDismiss: handleFileSelection
+        ) {
+            if #available(iOS 14.0, *) {
+                DocumentPicker(
+                    allowedUTTypes: FileTypeHelper.utTypes(from: supportedFileExtensions),
+                    selectedFileURL: $selectedFileURL,
+                    isPresented: $isShowingDocumentPicker
+                )
+            }
+        }
         
 #if os(iOS)
         .actionSheet(isPresented: $isShowingImageSourceTypeActionSheet) { () -> ActionSheet in
             ActionSheet(
-                title: Text("Choose pictures"),
-                message: Text("Please choose pictures from your gallery"),
+                title: Text("Choose file"),
+                message: Text("Please choose a file or picture"),
                 buttons: [
                     ActionSheet.Button.default(
                         Text("Photo library"),
@@ -130,6 +161,14 @@ public struct SnapPix<
                             sourceType = .camera
                         }
                     ),
+                    ActionSheet.Button.default(
+                        Text("Files"),
+                        action: {
+                            if #available(iOS 14.0, *) {
+                                isShowingDocumentPicker = true
+                            }
+                        }
+                    ),
                     ActionSheet.Button.cancel()
                 ]
             )
@@ -142,6 +181,26 @@ public struct SnapPix<
         uiImages.append(selectedImage)
         self.selectedImage = nil
         addImageCallback?()
+    }
+    
+    private func handleFileSelection() {
+        guard let fileURL = selectedFileURL else { return }
+        
+        if #available(iOS 14.0, *) {
+            let pathExtension = fileURL.pathExtension.lowercased()
+            
+            if ["jpg", "jpeg", "png"].contains(pathExtension) {
+                if let imageData = try? Data(contentsOf: fileURL),
+                   let image = UIImage(data: imageData) {
+                    uiImages.append(image)
+                    addImageCallback?()
+                }
+            } else {
+                fileSelectedCallback?(fileURL)
+            }
+        }
+        
+        self.selectedFileURL = nil
     }
     
     @ViewBuilder
